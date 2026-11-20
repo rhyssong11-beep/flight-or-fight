@@ -81,11 +81,11 @@ function ClassTitleOverlay({ cabinId }) {
     <div className="class-title-stage" role="status">
       <div className="class-title">
         <small>
-          Class {String(idx + 1).padStart(2, '0')} / {String(CABINS.length).padStart(2, '0')}
+          클래스 {String(idx + 1).padStart(2, '0')} / {String(CABINS.length).padStart(2, '0')}
         </small>
         <strong>{cabin.name}</strong>
         <span>
-          {cabin.layout} · {cabin.pitchInches}&quot; pitch · From {formatPrice(cabin.price)}
+          {cabin.layout} 배열 · 피치 {cabin.pitchInches}&quot; · {formatPrice(cabin.price)}~
         </span>
       </div>
     </div>
@@ -93,50 +93,44 @@ function ClassTitleOverlay({ cabinId }) {
 }
 
 export default function App() {
-  // Navigation & camera view state
-  const [phase, setPhase] = useState('overview'); // 'overview' | 'class-view' | 'seat-pov' | 'walkthrough' | 'transitioning'
+  const [phase, setPhase] = useState('overview');
   const [target, setTarget] = useState(OVERVIEW_TARGET);
   const targetRef = useRef(OVERVIEW_TARGET);
   const transitioningRef = useRef(false);
 
-  // Bookings & modals
   const [booked, setBooked] = useState(readStoredBookings);
-  const [modal, setModal] = useState(null); // null | 'flight' | 'bookings' | 'help' | 'list' | 'postcard'
+  const [modal, setModal] = useState(null);
   const [listCabin, setListCabin] = useState('first');
   const [postcardData, setPostcardData] = useState({ url: null, seatId: '' });
 
-  // 3D viewport & hover state
   const [hovered, setHovered] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [passVisible, setPassVisible] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [lookResetTick, setLookResetTick] = useState(0);
+  const [lookPreset, setLookPreset] = useState(null);
+  const [activeLookDir, setActiveLookDir] = useState('left');
   const canvasElRef = useRef(null);
 
-  // Atmosphere, Sky & Weather
-  const [flightProgress, setFlightProgress] = useState(0.86); // Iconic golden hour default!
+  const [flightProgress, setFlightProgress] = useState(0.86);
   const [timePlaying, setTimePlaying] = useState(false);
   const [weatherId, setWeatherId] = useState('clear');
 
-  // Audio & ANC
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [ancEnabled, setAncEnabled] = useState(false);
 
-  // Smart Seat Finder 3D X-Ray filter
   const [activeFilter, setActiveFilter] = useState(null);
 
-  // Seat-specific interactive comfort & window features
-  const [dimLevel, setDimLevel] = useState(0); // 0..4
-  const [shutterPos, setShutterPos] = useState(0); // 0..1
+  const [dimLevel, setDimLevel] = useState(0);
+  const [shutterPos, setShutterPos] = useState(0);
   const [frostEnabled, setFrostEnabled] = useState(false);
-  const [seatMode, setSeatMode] = useState('upright'); // 'upright' | 'lounge' | 'flat'
+  const [seatMode, setSeatMode] = useState('upright');
   const [privacyDoorClosed, setPrivacyDoorClosed] = useState(false);
   const [heightCm, setHeightCm] = useState(176);
   const [showLegroomRuler, setShowLegroomRuler] = useState(false);
 
-  // Cabin Walkthrough Tour state
   const [walkPaused, setWalkPaused] = useState(false);
-  const [walkInfo, setWalkInfo] = useState({ progress: 0, cabinName: 'First Suite', x: -20.8 });
+  const [walkInfo, setWalkInfo] = useState({ progress: 0, cabinName: '퍼스트 스위트', x: -20.8 });
 
   const env = useMemo(() => getFlightEnvironment(flightProgress), [flightProgress]);
   const weather = useMemo(
@@ -149,7 +143,6 @@ export default function App() {
   const activeCabin = activeCabinId ? CABIN_BY_ID[activeCabinId] : null;
   const selectedSeat = target.kind === 'seat' ? target.seat : null;
 
-  // Sync bookings across tabs & cleanup audio on unmount
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === STORAGE_KEY || e.key === null) setBooked(readStoredBookings());
@@ -161,7 +154,6 @@ export default function App() {
     };
   }, []);
 
-  // Timelapse animation loop when playing 16h Polar Flight
   useEffect(() => {
     if (!timePlaying) return;
     let rafId = 0;
@@ -179,7 +171,6 @@ export default function App() {
     return () => cancelAnimationFrame(rafId);
   }, [timePlaying]);
 
-  // Compute current spatial acoustic position (X & base dB)
   const currentSpatialSeat = useMemo(() => {
     if (target.kind === 'seat') {
       return { seatX: target.seat.x, noiseDb: target.seat.noiseDb };
@@ -199,7 +190,6 @@ export default function App() {
     return { seatX: 0, noiseDb: 69.5 };
   }, [target, activeCabin, walkInfo.x]);
 
-  // Push spatial sound parameters to Web Audio engine
   useEffect(() => {
     cabinAudio.updateSpatialState({
       seatX: currentSpatialSeat.seatX,
@@ -214,7 +204,6 @@ export default function App() {
     return Math.round((currentSpatialSeat.noiseDb + turbDb + ancCut) * 10) / 10;
   }, [currentSpatialSeat.noiseDb, weather.turbulence, ancEnabled]);
 
-  // Core navigation transition helper
   const navigateTo = useCallback((nextTarget) => {
     if (transitioningRef.current) return;
     transitioningRef.current = true;
@@ -224,13 +213,14 @@ export default function App() {
     setPassVisible(true);
     setModal(null);
     setWalkPaused(false);
-    // Reset seat-only states smoothly on seat switch
+    setLookPreset(null);
     if (nextTarget.kind === 'seat') {
       setSeatMode('upright');
       setPrivacyDoorClosed(false);
       setShowLegroomRuler(false);
       setDimLevel(0);
       setShutterPos(0);
+      setActiveLookDir(nextTarget.seat.z < 0 ? 'left' : 'right');
     }
     setPhase('transitioning');
     setTarget(nextTarget);
@@ -275,7 +265,11 @@ export default function App() {
     setModal('list');
   }, [activeCabinId]);
 
-  // Escape key behavior
+  const handleSelectLookDir = useCallback((dir) => {
+    setActiveLookDir(dir);
+    setLookPreset({ dir, tick: Date.now() + Math.random() });
+  }, []);
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Escape' || modal) return;
@@ -289,7 +283,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [expanded, modal, phase, navigateTo]);
 
-  // Booking actions
   const bookCurrentSeat = useCallback(() => {
     if (target.kind !== 'seat' || target.seat.occupied) return;
     const next = [...new Set([...booked, ...readStoredBookings(), target.seat.id])];
@@ -312,7 +305,6 @@ export default function App() {
     setBooked([]);
   }, []);
 
-  // Audio & ANC handlers
   const handleToggleAudio = useCallback(async () => {
     const on = await cabinAudio.toggle();
     setAudioEnabled(on);
@@ -375,10 +367,10 @@ export default function App() {
     target.kind === 'class'
       ? activeCabin?.name
       : target.kind === 'seat'
-      ? target.seat.viewLabel
+      ? `${target.seat.id} · ${target.seat.viewLabel}`
       : target.kind === 'walkthrough'
-      ? `Aisle walk · ${walkInfo.cabinName}`
-      : 'Aircraft overview';
+      ? `복도 투어 · ${walkInfo.cabinName}`
+      : '기체 전체 보기';
 
   const showSunBeacon =
     isInspectMode && (activeFilter === 'shade' || activeFilter === 'sun');
@@ -389,20 +381,20 @@ export default function App() {
         <div className="nav-wrap">
           <AerisBrand />
           <span className="nav-divider" />
-          <nav aria-label="Main navigation">
+          <nav aria-label="주 메뉴">
             <button
               type="button"
               className={`nav-link ${!modal || modal === 'list' || modal === 'help' ? 'current' : ''}`}
               onClick={() => setModal(null)}
             >
-              Seat explorer
+              좌석 탐색
             </button>
             <button
               type="button"
               className={`nav-link ${modal === 'flight' ? 'current' : ''}`}
               onClick={() => setModal('flight')}
             >
-              Flight details
+              항공편 정보
             </button>
           </nav>
 
@@ -412,15 +404,15 @@ export default function App() {
               className="booking-link"
               onClick={() => setModal('bookings')}
             >
-              <Ticket size={17} /> My bookings
+              <Ticket size={17} /> 내 예약
               {booked.length > 0 && <b>{booked.length}</b>}
             </button>
             <span className="nav-divider" />
             <button
               type="button"
               className="help-button"
-              title="Explorer guide"
-              aria-label="Explorer guide"
+              title="이용 가이드"
+              aria-label="이용 가이드"
               onClick={() => setModal('help')}
             >
               <CircleHelp size={18} />
@@ -433,24 +425,24 @@ export default function App() {
         <div className="heading-row">
           <div>
             <div className="eyebrow">
-              <i /> INTERACTIVE SEAT SELECTION
+              <i /> 3D 인터랙티브 좌석 선택
             </div>
             <h1>
-              Cabin explorer<span>.</span>
+              기내 익스플로러<span>.</span>
             </h1>
-            <p>Step inside the aircraft, explore lighting &amp; acoustics, and find your perfect seat.</p>
+            <p>항공기 내부로 직접 들어가 양측 창문 시야, 시간대별 하늘, 기내 음향까지 체험하고 완벽한 좌석을 찾아보세요.</p>
           </div>
 
           <div className="route-summary">
             <div className="flight-no">
-              <Plane size={14} /> FLIGHT EK215
+              <Plane size={14} /> EK215편
             </div>
             <RouteBadge />
           </div>
         </div>
 
         <div className="workspace-grid">
-          <section className="explorer-column" aria-label="Aircraft explorer">
+          <section className="explorer-column" aria-label="3D 항공기 탐색기">
             <div className={`viewer-shell ${expanded ? 'expanded' : ''}`}>
               <div className="viewer">
                 <AircraftScene
@@ -474,6 +466,7 @@ export default function App() {
                   showSunBeacon={showSunBeacon}
                   interactive={isInspectMode && !modal}
                   lookResetTick={lookResetTick}
+                  lookPreset={lookPreset}
                   walkPaused={walkPaused}
                   onWalkProgress={handleWalkProgress}
                   onCanvasReady={(el) => {
@@ -484,26 +477,24 @@ export default function App() {
                   onSettled={handleSettled}
                 />
 
-                {/* Top Overlay Bar: Never collides with Boarding Pass! */}
                 <div className="viewer-head">
                   {!isSeatPov && !isWalkthrough ? (
                     <div className="live-tag">
-                      <i /> LIVE VIEW · {env.phaseName.toUpperCase()}
+                      <i /> 실시간 뷰 · {env.phaseName}
                     </div>
                   ) : (
                     <span />
                   )}
 
-                  {/* Quick Cabin Switcher inside Expanded Fullscreen View */}
                   {expanded && (
-                    <div className="expanded-switcher" role="navigation" aria-label="Quick cabin switcher">
+                    <div className="expanded-switcher" role="navigation" aria-label="빠른 클래스 전환">
                       <button
                         type="button"
                         className={target.kind === 'overview' ? 'active' : ''}
                         onClick={goOverview}
                         disabled={phase === 'transitioning'}
                       >
-                        Overview
+                        전체
                       </button>
                       {CABINS.map((c) => (
                         <button
@@ -523,29 +514,27 @@ export default function App() {
                     type="button"
                     className="expand"
                     onClick={() => setExpanded((v) => !v)}
-                    title={expanded ? 'Exit expanded view' : 'Expand view'}
-                    aria-label={expanded ? 'Exit expanded view' : 'Expand view'}
+                    title={expanded ? '확장 화면 닫기' : '화면 크게 보기'}
+                    aria-label={expanded ? '확장 화면 닫기' : '화면 크게 보기'}
                   >
                     {expanded ? <X size={15} /> : <Maximize size={15} />}
                   </button>
                 </div>
 
-                {/* Fasten Seatbelt overhead indicator visible across ALL views during turbulence */}
                 {weather.seatbelt && !isWalkthrough && (
                   <div className="seatbelt-banner" role="status">
                     <AlertTriangle size={13} aria-hidden="true" />
                     <span>
-                      FASTEN SEATBELT · {weather.id === 'storm' ? 'STORM FRONT' : 'LIGHT CHOP'}
+                      좌석 벨트 착용등 점등 · {weather.label}
                     </span>
                   </div>
                 )}
 
-                {/* Aircraft Overview / Class Inspection Caption & Zoom */}
                 {isInspectMode && (
                   <div className="aircraft-caption">
                     <div>
-                      <span>{target.kind === 'class' ? 'CABIN INSPECTION' : 'WIDEBODY AIRCRAFT'}</span>
-                      <h2>{target.kind === 'class' ? activeCabin?.name : 'Boeing 777-300ER'}</h2>
+                      <span>{target.kind === 'class' ? '객실 상세 탐색' : '광동체 항공기'}</span>
+                      <h2>{target.kind === 'class' ? activeCabin?.name : '보잉 777-300ER'}</h2>
                     </div>
                   </div>
                 )}
@@ -554,8 +543,8 @@ export default function App() {
                   <div className="zoom">
                     <button
                       type="button"
-                      aria-label="Zoom in"
-                      title="Zoom in"
+                      aria-label="확대"
+                      title="확대"
                       disabled={zoom >= 2}
                       onClick={() => setZoom((z) => Math.min(2, z + 0.25))}
                     >
@@ -564,8 +553,8 @@ export default function App() {
                     <i />
                     <button
                       type="button"
-                      aria-label="Zoom out"
-                      title="Zoom out"
+                      aria-label="축소"
+                      title="축소"
                       disabled={zoom <= 0.75}
                       onClick={() => setZoom((z) => Math.max(0.75, z - 0.25))}
                     >
@@ -574,8 +563,8 @@ export default function App() {
                     <i />
                     <button
                       type="button"
-                      aria-label="Reset view"
-                      title="Reset view"
+                      aria-label="시점 초기화"
+                      title="시점 초기화"
                       onClick={() => {
                         setZoom(1);
                         setLookResetTick((n) => n + 1);
@@ -587,47 +576,43 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 1st-Person Seat POV: Persistent Controls + Window/Recline/Legroom/IFE HUD + Docked Holographic Boarding Pass */}
                 {isSeatPov && (
-                  <>
-                    <WindowExperienceHUD
-                      seat={target.seat}
-                      env={env}
-                      seatbeltOn={weather.seatbelt}
-                      dimLevel={dimLevel}
-                      onChangeDim={(lvl) => {
-                        setDimLevel(lvl);
-                        cabinAudio.playShutterClick();
-                      }}
-                      shutterPos={shutterPos}
-                      onChangeShutter={(pos) => setShutterPos(pos)}
-                      frostEnabled={frostEnabled}
-                      onToggleFrost={() => setFrostEnabled((v) => !v)}
-                      seatMode={seatMode}
-                      onChangeSeatMode={setSeatMode}
-                      privacyDoorClosed={privacyDoorClosed}
-                      onTogglePrivacyDoor={() => {
-                        setPrivacyDoorClosed((v) => !v);
-                        cabinAudio.playShutterClick();
-                      }}
-                      heightCm={heightCm}
-                      onChangeHeightCm={setHeightCm}
-                      showLegroomRuler={showLegroomRuler}
-                      onToggleLegroomRuler={setShowLegroomRuler}
-                      onResetLook={() => setLookResetTick((n) => n + 1)}
-                      onBackToCabin={() => navigateTo({ kind: 'class', cabin: target.seat.cabin })}
-                      onBackToOverview={goOverview}
-                      onSavePostcard={handleSavePostcard}
-                    />
-                  </>
+                  <WindowExperienceHUD
+                    seat={target.seat}
+                    env={env}
+                    dimLevel={dimLevel}
+                    onChangeDim={(lvl) => {
+                      setDimLevel(lvl);
+                      cabinAudio.playShutterClick();
+                    }}
+                    shutterPos={shutterPos}
+                    onChangeShutter={(pos) => setShutterPos(pos)}
+                    frostEnabled={frostEnabled}
+                    onToggleFrost={() => setFrostEnabled((v) => !v)}
+                    seatMode={seatMode}
+                    onChangeSeatMode={setSeatMode}
+                    privacyDoorClosed={privacyDoorClosed}
+                    onTogglePrivacyDoor={() => {
+                      setPrivacyDoorClosed((v) => !v);
+                      cabinAudio.playShutterClick();
+                    }}
+                    heightCm={heightCm}
+                    onChangeHeightCm={setHeightCm}
+                    showLegroomRuler={showLegroomRuler}
+                    onToggleLegroomRuler={setShowLegroomRuler}
+                    activeLookDir={activeLookDir}
+                    onSelectLookDir={handleSelectLookDir}
+                    onBackToCabin={() => navigateTo({ kind: 'class', cabin: target.seat.cabin })}
+                    onBackToOverview={goOverview}
+                    onSavePostcard={handleSavePostcard}
+                  />
                 )}
 
-                {/* 1st-Person Aisle Walkthrough HUD */}
                 {isWalkthrough && (
-                  <div className="walk-hud" role="region" aria-label="Cabin walkthrough controls">
+                  <div className="walk-hud" role="region" aria-label="기내 복도 투어 제어">
                     <div className="walk-hud-top">
                       <span className="walk-badge">
-                        <Footprints size={13} /> WALKING THROUGH · <b>{walkInfo.cabinName}</b>
+                        <Footprints size={13} /> 기내 복도 걷기 중 · <b>{walkInfo.cabinName}</b>
                       </span>
                       <div className="walk-hud-btns">
                         <button
@@ -636,17 +621,17 @@ export default function App() {
                           onClick={() => setWalkPaused((p) => !p)}
                         >
                           {walkPaused ? <Play size={12} /> : <Pause size={12} />}
-                          {walkPaused ? 'Resume' : 'Pause'}
+                          {walkPaused ? '계속 걷기' : '일시정지'}
                         </button>
                         <button
                           type="button"
                           className="hud-pill subtle"
                           onClick={() => setLookResetTick((n) => n + 1)}
                         >
-                          Center look
+                          정면 시선
                         </button>
                         <button type="button" className="hud-pill dark" onClick={goOverview}>
-                          Exit walk
+                          투어 종료
                         </button>
                       </div>
                     </div>
@@ -656,13 +641,11 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Class Fly-in Transition Title Veil */}
                 {phase === 'transitioning' && target.kind === 'class' && (
                   <ClassTitleOverlay cabinId={target.cabin} />
                 )}
               </div>
 
-              {/* Holographic Boarding Pass: right-docked overlay on desktop, unclipped clean card below 3D view on mobile */}
               {isSeatPov && passVisible && (
                 <BoardingPass
                   seat={target.seat}
@@ -680,7 +663,6 @@ export default function App() {
                 />
               )}
 
-              {/* Viewer Bottom Toolbar */}
               <div className="view-toolbar">
                 <span className="view-mode">
                   <Layers size={16} /> {toolbarViewLabel}
@@ -692,13 +674,13 @@ export default function App() {
                     className="pass-visibility"
                     onClick={() => setPassVisible((v) => !v)}
                   >
-                    <Ticket size={14} /> {passVisible ? 'Hide pass' : 'Show pass'}
+                    <Ticket size={14} /> {passVisible ? '탑승권 숨기기' : '탑승권 보기'}
                   </button>
                 ) : isWalkthrough ? (
-                  <span className="hover-hint">Drag anywhere to look 360° along the aisle</span>
+                  <span className="hover-hint">드래그하여 복도 좌우·천장까지 360° 둘러보세요</span>
                 ) : (
                   <span className="hover-hint">
-                    <MousePointer2 size={14} /> Hover or select any seat to explore
+                    <MousePointer2 size={14} /> 좌석을 클릭해 탑승하고 360° 양측 창문을 둘러보세요
                   </span>
                 )}
 
@@ -708,14 +690,14 @@ export default function App() {
                   disabled={phase === 'transitioning'}
                   onClick={openSeatList}
                 >
-                  <List size={15} /> Seat map
+                  <List size={15} /> 좌석 배치도
                 </button>
 
                 <button
                   type="button"
-                  aria-label={audioEnabled ? 'Mute cabin audio' : 'Enable cabin audio'}
+                  aria-label={audioEnabled ? '기내 음향 끄기' : '기내 음향 켜기'}
                   aria-pressed={audioEnabled}
-                  title={audioEnabled ? 'Mute cabin audio' : 'Enable cabin audio'}
+                  title={audioEnabled ? '기내 음향 끄기' : '기내 음향 켜기'}
                   onClick={handleToggleAudio}
                   className={`audio${audioEnabled ? ' audio-on' : ''}`}
                 >
@@ -724,7 +706,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 3D X-Ray Smart Seat Finder + Sun-Side Guidance */}
             <SmartSeatFinder
               activeFilter={activeFilter}
               onChangeFilter={setActiveFilter}
@@ -732,7 +713,6 @@ export default function App() {
               booked={booked}
             />
 
-            {/* 16h Polar Sky Timeline + Weather/Wing Flex + Spatial Audio & ANC + Walkthrough */}
             <FlightEnvironmentBar
               flightProgress={flightProgress}
               onChangeProgress={(p) => {
@@ -754,19 +734,17 @@ export default function App() {
               disabledWalk={phase === 'transitioning'}
             />
 
-            {/* Live Breathing Flight Telemetry */}
             <TelemetryStrip env={env} turbulenceLevel={weather.turbulence} />
           </section>
 
-          {/* Right Cabin Directory Sidebar */}
           <aside className="directory">
             <div className="directory-head">
               <div className="section-icon">
                 <Armchair size={19} />
               </div>
               <div>
-                <div className="micro">CABIN DIRECTORY</div>
-                <h2>Explore classes</h2>
+                <div className="micro">객실 클래스 안내</div>
+                <h2>클래스 둘러보기</h2>
               </div>
             </div>
 
@@ -788,18 +766,18 @@ export default function App() {
                       }
                     }}
                     disabled={phase === 'transitioning'}
-                    aria-label={`Explore ${c.name}`}
+                    aria-label={`${c.name} 둘러보기`}
                   >
                     <div className="seat-pic">
                       <img src={CABIN_IMAGES[c.id]} alt="" />
                     </div>
                     <div className="cabin-text">
                       <span className="layout">
-                        <i style={{ background: c.color }} /> {c.layout} LAYOUT
+                        <i style={{ background: c.color }} /> {c.layout} 배열
                       </span>
                       <strong>{c.name}</strong>
                       <span className="from">
-                        From <b>{formatPrice(c.price)}</b> · {availCount} open
+                        <b>{formatPrice(c.price)}</b>~ · 잔여 {availCount}석
                       </span>
                     </div>
                     <ChevronRight size={15} className="cabin-arrow" />
@@ -810,13 +788,13 @@ export default function App() {
 
             <div className="status-key">
               <span>
-                <i className="k-avail" /> Available
+                <i className="k-avail" /> 선택 가능
               </span>
               <span>
-                <i className="k-occ" /> Occupied
+                <i className="k-occ" /> 예약됨
               </span>
               <span>
-                <i className="k-booked" /> Booked
+                <i className="k-booked" /> 내 예약
               </span>
             </div>
           </aside>
@@ -824,53 +802,51 @@ export default function App() {
 
         <footer>
           <span>
-            <span className="online-dot" /> Simulation online · {env.phaseName} · {weather.label}
+            <span className="online-dot" /> 시뮬레이션 온라인 · {env.phaseName} · {weather.label}
           </span>
           <span>
-            AERIS <b>/</b> FLIGHT EXPERIENCE
+            AERIS <b>/</b> 3D 비행 체험
           </span>
         </footer>
       </main>
 
-      {/* Live 3D Seat Hover Tooltip */}
       {hovered && isInspectMode && !modal && (
         <div
           className="tooltip"
           role="tooltip"
           style={{
-            left: Math.max(8, Math.min(hovered.x + 16, window.innerWidth - 220)),
-            top: Math.max(8, Math.min(hovered.y + 16, window.innerHeight - 108)),
+            left: Math.max(8, Math.min(hovered.x + 16, window.innerWidth - 235)),
+            top: Math.max(8, Math.min(hovered.y + 16, window.innerHeight - 112)),
           }}
         >
           <div className="tt-top">
-            <strong>Seat {hovered.seat.id}</strong>
+            <strong>{hovered.seat.id} 좌석</strong>
             <span className="tt-price">{formatPrice(CABIN_BY_ID[hovered.seat.cabin].price)}</span>
           </div>
           <span className="tt-status">
             {booked.includes(hovered.seat.id)
-              ? '★ Booked by you · Click to revisit'
+              ? '★ 내 예약 좌석 · 클릭해 다시 보기'
               : hovered.seat.occupied
-              ? '● Occupied'
-              : '● Available · Click to step inside'}
+              ? '● 이미 예약된 좌석'
+              : '● 선택 가능 · 클릭해 착석하기'}
           </span>
           <small className="tt-meta">
-            {hovered.seat.viewLabel} · {hovered.seat.pitchInches}&quot; pitch · {hovered.seat.noiseDb} dB
+            {hovered.seat.viewLabel} · 피치 {hovered.seat.pitchInches}&quot; · {hovered.seat.noiseDb} dB
           </small>
         </div>
       )}
 
-      {/* Dialog Modals */}
       {modal && (
         <DialogPanel
           close={() => setModal(null)}
           wide={modal === 'list' || modal === 'postcard'}
           title={
             {
-              flight: 'Flight details',
-              bookings: 'My bookings',
-              help: 'Explorer guide',
-              list: 'Cabin seat map',
-              postcard: 'Souvenir postcard',
+              flight: '항공편 상세 정보',
+              bookings: '내 좌석 예약',
+              help: '이용 가이드',
+              list: '기내 좌석 배치도',
+              postcard: '창밖 뷰 기념 엽서',
             }[modal]
           }
         >

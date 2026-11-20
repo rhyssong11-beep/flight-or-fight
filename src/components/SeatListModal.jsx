@@ -23,7 +23,6 @@ export default function SeatListModal({
     return Array.from(byRow.entries()).sort((a, b) => a[0] - b[0]);
   }, [cabin.id]);
 
-  // Build CSS grid template reflecting exact aisle gaps (e.g. 1-2-1, 2-3-2, 3-4-3)
   const columnsWithAisles = useMemo(() => {
     const cols = [];
     cabin.columns.forEach((letter, idx) => {
@@ -36,20 +35,20 @@ export default function SeatListModal({
   }, [cabin]);
 
   const gridTemplate = useMemo(() => {
-    const parts = ['26px']; // Row number column
+    const parts = ['28px'];
     columnsWithAisles.forEach((c) => {
       parts.push(c.kind === 'aisle' ? '14px' : 'minmax(0, 1fr)');
     });
     return parts.join(' ');
   }, [columnsWithAisles]);
 
-  const leftTag = env.sunSide === 'aurora' ? 'AURORA' : env.sunSide === 'port' ? 'SUN (A)' : 'SHADE (A)';
-  const rightTag = env.sunSide === 'aurora' ? 'AURORA' : env.sunSide === 'starboard' ? 'SUN (K)' : 'SHADE (K)';
+  const leftTag = env.sunSide === 'aurora' ? '오로라 (A)' : env.sunSide === 'port' ? '햇빛 (A)' : '그늘 (A)';
+  const rightTag = env.sunSide === 'aurora' ? '오로라 (K)' : env.sunSide === 'starboard' ? '햇빛 (K)' : '그늘 (K)';
 
   return (
     <div className="seatmap-modal">
       <div className="list-select">
-        <label htmlFor="cabin-choice">Cabin class</label>
+        <label htmlFor="cabin-choice">객실 클래스</label>
         <select
           id="cabin-choice"
           value={cabin.id}
@@ -57,26 +56,24 @@ export default function SeatListModal({
         >
           {CABINS.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} ({c.layout}) · {formatPrice(c.price)}
+              {c.name} ({c.layout} 배열) · {formatPrice(c.price)}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Sun / Shade / Layout orientation strip */}
       <div className="seatmap-orient">
         <span className={env.sunSide === 'port' ? 'is-sun' : ''}>
           {env.sunSide === 'aurora' ? <Sparkles size={11} /> : <Sun size={11} />} {leftTag}
         </span>
-        <span className="orient-center">{cabin.layout} CONFIGURATION · FRONT ▲</span>
+        <span className="orient-center">{cabin.layout} 실제 기내 배열 · 기수 방향 ▲</span>
         <span className={env.sunSide === 'starboard' ? 'is-sun' : ''}>
           {rightTag} {env.sunSide === 'aurora' ? <Sparkles size={11} /> : <Sun size={11} />}
         </span>
       </div>
 
-      {/* Column Letter Headers */}
       <div className="seatmap-header" style={{ gridTemplateColumns: gridTemplate }}>
-        <span className="row-num-hd">Row</span>
+        <span className="row-num-hd">열</span>
         {columnsWithAisles.map((col) =>
           col.kind === 'aisle' ? (
             <span key={col.key} className="aisle-hd" aria-hidden="true" />
@@ -88,7 +85,6 @@ export default function SeatListModal({
         )}
       </div>
 
-      {/* True-to-aircraft rows with aisle corridors, exit row badges & wing zone indicators */}
       <div className="seatmap-rows" role="list">
         {rows.map(([rowNum, rowSeats]) => {
           const isExit = rowSeats[0]?.isExitRow;
@@ -97,8 +93,8 @@ export default function SeatListModal({
             <React.Fragment key={rowNum}>
               {isExit && (
                 <div className="exit-divider">
-                  <span>◄ EXIT ROW · EXTRA LEGROOM (38&quot;)</span>
-                  <span>EXIT ►</span>
+                  <span>◄ 비상구 열 · 넓은 레그룸 (38&quot;)</span>
+                  <span>비상구 ►</span>
                 </div>
               )}
               <div
@@ -106,7 +102,7 @@ export default function SeatListModal({
                 style={{ gridTemplateColumns: gridTemplate }}
                 role="listitem"
               >
-                <span className="row-num" title={isWing ? `Row ${rowNum} (Over-wing)` : `Row ${rowNum}`}>
+                <span className="row-num" title={isWing ? `${rowNum}열 (날개 구역)` : `${rowNum}열`}>
                   {rowNum}
                   {isWing && <Wind size={9} className="wing-dot" aria-hidden="true" />}
                 </span>
@@ -127,10 +123,10 @@ export default function SeatListModal({
                       className={`smap-btn${isBooked ? ' is-booked' : ''}${isFiltered ? ' is-match' : ''}`}
                       disabled={isDisabled}
                       onClick={() => onSelectSeat(seat)}
-                      aria-label={`Seat ${seat.id}, ${seat.positionType}, ${
-                        isBooked ? 'booked by you, select to view' : isDisabled ? 'occupied' : 'available'
+                      aria-label={`${seat.id} 좌석, ${seat.positionLabel}, ${
+                        isBooked ? '내 예약 좌석, 클릭하여 3D 보기' : isDisabled ? '예약됨' : '선택 가능'
                       }`}
-                      title={`Seat ${seat.id} · ${seat.viewLabel} · ${seat.noiseDb} dB`}
+                      title={`${seat.id} 좌석 · ${seat.viewLabel} · ${seat.noiseDb} dB`}
                     >
                       {isBooked ? <Check size={11} aria-hidden="true" /> : seat.id}
                     </button>
@@ -143,10 +139,10 @@ export default function SeatListModal({
       </div>
 
       <div className="seatmap-legend">
-        <span><i className="lg-avail" /> Available</span>
-        <span><i className="lg-occ" /> Occupied</span>
-        <span><i className="lg-booked" /> Booked (click to view)</span>
-        <span><Wind size={11} /> Wing zone</span>
+        <span><i className="lg-avail" /> 선택 가능</span>
+        <span><i className="lg-occ" /> 예약됨</span>
+        <span><i className="lg-booked" /> 내 예약 (클릭해 재방문)</span>
+        <span><Wind size={11} /> 날개 구역</span>
       </div>
     </div>
   );

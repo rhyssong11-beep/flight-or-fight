@@ -359,9 +359,9 @@ export function buildAirframeHierarchy() {
     [26.5, 11.12, 13.5, 1.14, 0.13],
   ];
   const hTailStations = [
-    [1.8, 19.4, 27.75, 0.76, 0.59],
-    [4.8, 21.38, 28.21, 1.14, 0.36],
-    [10.25, 26.62, 29.54, 1.88, 0.13],
+    [1.75, 22.35, 29.35, 1.02, 0.52],
+    [4.9, 24.15, 29.75, 1.32, 0.34],
+    [10.25, 27.65, 30.35, 1.96, 0.13],
   ];
 
   const sampleAirfoil = (stations, spanZ, chordU, sideSign, upper, yPad = 0, zOffset = 0) => {
@@ -404,13 +404,13 @@ export function buildAirframeHierarchy() {
     }
   }
 
-  // Vertical tail fin with Aeris gold triple chevron stripes
+  // Vertical tail fin mounted cleanly aft of the rear cabin bulkhead (CABIN_END_X ≈ 21.95)
   const finStations = [
-    [0.92, 16.65, 29.1, 0.73],
-    [2.15, 20, 29.16, 0.54],
-    [3.07, 21.65, 29.25, 0.41],
-    [7.68, 26.56, 29.72, 0.095],
-    [7.86, 26.93, 29.7, 0.048],
+    [2.15, 22.15, 29.55, 0.58],
+    [2.85, 22.65, 29.65, 0.46],
+    [3.65, 23.60, 29.75, 0.36],
+    [7.68, 27.15, 30.05, 0.095],
+    [7.92, 27.45, 30.05, 0.048],
   ];
   const sampleFin = (y, u, sideSign, zPad = 0) => {
     const idx = Math.max(1, finStations.findIndex((s) => s[0] >= y));
@@ -434,11 +434,11 @@ export function buildAirframeHierarchy() {
       body.push(
         'brass',
         buildParametricGrid(8, 2, (u, v) =>
-          sampleFin(3.71 + u * (2.07 - k * 0.28) + k * 0.55, 0.17 + 0.59 * u + v * (0.09 - 0.066 * u), sideSign, 0.017)
+          sampleFin(3.85 + u * (2.0 - k * 0.26) + k * 0.52, 0.18 + 0.58 * u + v * (0.085 - 0.062 * u), sideSign, 0.017)
         )
       );
     }
-    body.push('edge', buildParametricGrid(5, 1, (u, v) => sampleFin(lerp(2.27, 7.62, u), 0.81 + v * 0.007, sideSign, 0.008)));
+    body.push('edge', buildParametricGrid(5, 1, (u, v) => sampleFin(lerp(2.75, 7.62, u), 0.81 + v * 0.007, sideSign, 0.008)));
   }
 
   body.flushToGroup(root, 'Airframe');

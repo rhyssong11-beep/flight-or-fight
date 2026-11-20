@@ -53,7 +53,7 @@ export default function BoardingPass({
       <section
         ref={cardRef}
         className={`flight-pass${booked ? ' is-confirmed' : ''}${tilt.active ? ' is-tilting' : ''}`}
-        aria-label={`Boarding pass for seat ${seat.id}`}
+        aria-label={`${seat.id} 좌석 탑승권`}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{
@@ -68,14 +68,14 @@ export default function BoardingPass({
         <div className="flight-pass-body">
           <header className="flight-pass-heading">
             <span>
-              <Ticket size={15} strokeWidth={1.6} aria-hidden="true" /> Boarding pass
+              <Ticket size={15} strokeWidth={1.6} aria-hidden="true" /> 탑승권
             </span>
             <span className="flight-pass-flight">EK215 · B777-300ER</span>
           </header>
 
           <div className="flight-pass-tags">
             <span className="flight-pass-cabin">{cabin.name}</span>
-            <span className="flight-pass-spec">{seat.pitchInches}&quot; pitch</span>
+            <span className="flight-pass-spec">피치 {seat.pitchInches}&quot;</span>
             <span className="flight-pass-spec">
               <Volume2 size={11} aria-hidden="true" /> {effectiveDb} dB
             </span>
@@ -85,7 +85,7 @@ export default function BoardingPass({
             <div className="flight-pass-stop">
               <strong>DXB</strong>
               <span>
-                Dubai <b>09:40</b>
+                두바이 <b>09:40</b>
               </span>
             </div>
             <div className="flight-pass-journey">
@@ -94,31 +94,31 @@ export default function BoardingPass({
                 <Plane size={16} strokeWidth={1.5} aria-hidden="true" />
                 <i />
               </div>
-              <small>{env.remainingLabel} left</small>
+              <small>잔여 {env.remainingLabel}</small>
             </div>
             <div className="flight-pass-stop">
               <strong>LAX</strong>
               <span>
-                Los Angeles <b>13:55</b>
+                로스앤젤레스 <b>13:55</b>
               </span>
             </div>
           </div>
 
           <dl className="flight-pass-fields">
             <div>
-              <dt>Passenger</dt>
-              <dd>You</dd>
+              <dt>승객</dt>
+              <dd>탑승객</dd>
             </div>
             <div>
-              <dt>Seat</dt>
+              <dt>좌석</dt>
               <dd>{seat.id}</dd>
             </div>
             <div>
-              <dt>Gate</dt>
+              <dt>게이트</dt>
               <dd>B12</dd>
             </div>
             <div>
-              <dt>Boarding</dt>
+              <dt>탑승 시각</dt>
               <dd>07:55</dd>
             </div>
           </dl>
@@ -127,48 +127,48 @@ export default function BoardingPass({
         <div className="flight-pass-stub">
           <div className="flight-pass-sale">
             <div className="flight-pass-total">
-              <span>Total fare</span>
+              <span>예상 운임</span>
               <strong>{formatPrice(cabin.price)}</strong>
             </div>
 
             {booked ? (
               <div className="booked-actions">
                 <button type="button" className="flight-pass-book is-booked" disabled>
-                  <Check size={15} aria-hidden="true" /> Booked
+                  <Check size={15} aria-hidden="true" /> 예약 완료
                 </button>
                 <button
                   type="button"
                   className="flight-pass-unbook"
                   onClick={onCancelBooking}
-                  title="Release this seat"
-                  aria-label={`Cancel booking for seat ${seat.id}`}
+                  title="좌석 예약 취소"
+                  aria-label={`${seat.id} 좌석 예약 취소`}
                 >
                   <X size={14} aria-hidden="true" />
                 </button>
               </div>
             ) : (
               <button type="button" className="flight-pass-book" onClick={onBook}>
-                Book {seat.id} <ArrowRight size={14} aria-hidden="true" />
+                {seat.id} 예약 <ArrowRight size={14} aria-hidden="true" />
               </button>
             )}
           </div>
 
           <span role="status" className="flight-pass-a11y">
-            {booked ? `Booking confirmed for seat ${seat.id}.` : ''}
+            {booked ? `${seat.id} 좌석 예약이 확정되었습니다.` : ''}
           </span>
 
           <div className="flight-pass-extra-row">
             <button type="button" className="postcard-cta" onClick={onSavePostcard}>
-              <Camera size={13} aria-hidden="true" /> Save Window Postcard (PNG)
+              <Camera size={13} aria-hidden="true" /> 창밖 뷰 엽서 저장 (PNG)
             </button>
           </div>
 
-          <nav className="flight-pass-links" aria-label="Explore more seats">
+          <nav className="flight-pass-links" aria-label="다른 좌석 둘러보기">
             <button type="button" onClick={onBack}>
-              <ArrowLeft size={13} aria-hidden="true" /> All Seats
+              <ArrowLeft size={13} aria-hidden="true" /> 전체 기체 보기
             </button>
             <button type="button" onClick={onNext}>
-              See {nextCabin.short} <ArrowRight size={13} aria-hidden="true" />
+              {nextCabin.short} 보기 <ArrowRight size={13} aria-hidden="true" />
             </button>
           </nav>
         </div>

@@ -43,21 +43,20 @@ export default function FlightEnvironmentBar({
   }, [audioEnabled]);
 
   return (
-    <section className="env-studio" aria-label="Flight atmosphere and audio controls">
-      {/* Row 1: 16h Polar Flight Timeline + Sky Presets */}
+    <section className="env-studio" aria-label="비행 환경 및 기내 음향 시뮬레이션">
       <div className="env-row timeline-row">
         <div className="env-label-group">
           <button
             type="button"
             className={`env-play-btn${timePlaying ? ' active' : ''}`}
             onClick={onToggleTimePlaying}
-            title={timePlaying ? 'Pause flight timelapse' : 'Play 16h flight timelapse'}
-            aria-label={timePlaying ? 'Pause flight timelapse' : 'Play 16h flight timelapse'}
+            title={timePlaying ? '비행 타임랩스 일시정지' : '16시간 비행 타임랩스 재생'}
+            aria-label={timePlaying ? '비행 타임랩스 일시정지' : '16시간 비행 타임랩스 재생'}
           >
             {timePlaying ? <Pause size={12} /> : <Play size={12} />}
           </button>
           <div>
-            <span className="env-kicker">POLAR FLIGHT TIMELINE · {env.elapsedLabel} / 16h 15m</span>
+            <span className="env-kicker">극지방 비행 타임라인 · {env.elapsedLabel} / 16시간 15분</span>
             <strong className="env-phase">
               {env.auroraFactor > 0.45 ? (
                 <Sparkles size={13} className="aurora-ic" aria-hidden="true" />
@@ -65,12 +64,12 @@ export default function FlightEnvironmentBar({
                 <Sun size={13} className="sun-ic" aria-hidden="true" />
               )}
               {env.phaseName}
-              <small> · Over {env.currentWaypoint.label}</small>
+              <small> · {env.currentWaypoint.label} 상공</small>
             </strong>
           </div>
         </div>
 
-        <div className="preset-pills" role="group" aria-label="Sky time presets">
+        <div className="preset-pills" role="group" aria-label="비행 시간대 프리셋">
           {TIME_PRESETS.map((preset) => {
             const active = Math.abs(flightProgress - preset.progress) < 0.07;
             return (
@@ -88,7 +87,7 @@ export default function FlightEnvironmentBar({
       </div>
 
       <div className="timeline-slider-wrap">
-        <span className="tl-end">DXB 09:40</span>
+        <span className="tl-end">두바이 09:40</span>
         <input
           type="range"
           min={0}
@@ -96,16 +95,15 @@ export default function FlightEnvironmentBar({
           value={Math.round(flightProgress * 1000)}
           onChange={(e) => onChangeProgress(Number(e.target.value) / 1000)}
           className="timeline-range"
-          aria-label="Flight time progression from Dubai to Los Angeles"
+          aria-label="두바이에서 로스앤젤레스 비행 시간 진행 슬라이더"
         />
-        <span className="tl-end">LAX 13:55</span>
+        <span className="tl-end">LA 13:55</span>
       </div>
 
-      {/* Row 2: Weather / Turbulence + Spatial Audio & ANC + Cabin Walkthrough */}
       <div className="env-row controls-row">
         <div className="env-group">
           <span className="env-sub">
-            <CloudLightning size={12} aria-hidden="true" /> Weather &amp; Wing Flex
+            <CloudLightning size={12} aria-hidden="true" /> 기상 · 날개 탄성
           </span>
           <div className="seg-group">
             {WEATHER_MODES.map((w) => (
@@ -123,7 +121,7 @@ export default function FlightEnvironmentBar({
 
         <div className="env-group audio-group">
           <span className="env-sub">
-            <Wind size={12} aria-hidden="true" /> Cabin Acoustics
+            <Wind size={12} aria-hidden="true" /> 기내 음향
           </span>
           <div className="audio-controls-inline">
             <button
@@ -137,7 +135,7 @@ export default function FlightEnvironmentBar({
                   <i key={i} style={{ height: `${Math.round(4 + v * 12)}px` }} />
                 ))}
               </span>
-              {audioEnabled ? `${effectiveDb} dB` : 'Audio Off'}
+              {audioEnabled ? `${effectiveDb} dB` : '음소거'}
             </button>
 
             <button
@@ -145,10 +143,10 @@ export default function FlightEnvironmentBar({
               className={`anc-btn anc-pill${ancEnabled ? ' anc-on' : ''}`}
               onClick={onToggleAnc}
               aria-pressed={ancEnabled}
-              title="Experience Active Noise Cancellation headphone isolation"
+              title="액티브 노이즈 캔슬링(ANC) 헤드폰 차단 효과 체험"
             >
               <Headphones size={13} aria-hidden="true" />
-              ANC {ancEnabled ? 'ON' : 'OFF'}
+              노이즈 캔슬링 {ancEnabled ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>
@@ -161,7 +159,7 @@ export default function FlightEnvironmentBar({
             disabled={disabledWalk}
           >
             <Footprints size={14} aria-hidden="true" />
-            {isWalkthrough ? 'Exit Aisle Walk' : 'Walk the Cabin'}
+            {isWalkthrough ? '복도 투어 종료' : '기내 복도 걷기'}
           </button>
         </div>
       </div>

@@ -13,10 +13,10 @@ export default function BookingsModal({
     return (
       <div className="empty">
         <Ticket size={28} strokeWidth={1.5} />
-        <h3>No seats booked yet</h3>
-        <p>Choose an available seat in the 3D cabin or seat map and confirm your boarding pass to manage it here.</p>
+        <h3>아직 예약한 좌석이 없습니다</h3>
+        <p>3D 객실 또는 좌석 배치도에서 원하는 좌석을 선택해 탑승권을 확정하면 여기에서 관리할 수 있습니다.</p>
         <button type="button" className="primary" onClick={onClose}>
-          Explore seats <ArrowRight size={15} />
+          좌석 둘러보기 <ArrowRight size={15} />
         </button>
       </div>
     );
@@ -42,7 +42,7 @@ export default function BookingsModal({
             </div>
             <div className="res-info">
               <strong>
-                Seat {seat.id} · {cabin.name}
+                {seat.id} 좌석 · {cabin.name}
               </strong>
               <small>
                 EK215 · DXB → LAX · {seat.viewLabel}
@@ -55,16 +55,16 @@ export default function BookingsModal({
                   type="button"
                   className="res-act view"
                   onClick={() => onVisitSeat(seat)}
-                  title={`Open 3D view for seat ${seat.id}`}
+                  title={`${seat.id} 좌석 3D 시점으로 이동`}
                 >
-                  <Eye size={13} /> View
+                  <Eye size={13} /> 3D 보기
                 </button>
                 <button
                   type="button"
                   className="res-act cancel"
                   onClick={() => onCancelSeat(seat.id)}
-                  title={`Cancel booking for seat ${seat.id}`}
-                  aria-label={`Cancel seat ${seat.id}`}
+                  title={`${seat.id} 좌석 예약 취소`}
+                  aria-label={`${seat.id} 좌석 예약 취소`}
                 >
                   <Trash2 size={13} />
                 </button>
@@ -76,11 +76,11 @@ export default function BookingsModal({
 
       <div className="bookings-summary">
         <div>
-          <small>{items.length} {items.length === 1 ? 'seat' : 'seats'} confirmed</small>
-          <strong>Total {formatPrice(totalFare)}</strong>
+          <small>총 {items.length}석 예약 확정</small>
+          <strong>합계 {formatPrice(totalFare)}</strong>
         </div>
         <button type="button" className="clear-all-btn" onClick={onClearAll}>
-          Release all
+          전체 취소
         </button>
       </div>
     </div>

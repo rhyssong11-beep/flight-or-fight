@@ -247,8 +247,16 @@ export function InteractiveWindowSet({ seat, dimLevel, shutterPos, frostEnabled,
 
   const sideSign = seat ? (seat.z < 0 ? -1 : 1) : -1;
 
-  const glassGeo = useMemo(() => buildCurvedWindowPaneGeo(sideSign, 0.67, 0.80, 1.30, 0.055), [sideSign]);
-  const shutterGeo = useMemo(() => buildCurvedWindowPaneGeo(sideSign, 0.69, 0.82, 1.30, 0.095), [sideSign]);
+  // Build curved window panes for BOTH sides (-1 Port & +1 Starboard) so looking across to the opposite window renders seamlessly!
+  const paneGeos = useMemo(
+    () => ({
+      leftGlass: buildCurvedWindowPaneGeo(-1, 0.67, 0.80, 1.30, 0.055),
+      leftShutter: buildCurvedWindowPaneGeo(-1, 0.69, 0.82, 1.30, 0.095),
+      rightGlass: buildCurvedWindowPaneGeo(1, 0.67, 0.80, 1.30, 0.055),
+      rightShutter: buildCurvedWindowPaneGeo(1, 0.69, 0.82, 1.30, 0.095),
+    }),
+    []
+  );
 
   const initialGlassUniforms = useMemo(
     () => ({
@@ -262,18 +270,24 @@ export function InteractiveWindowSet({ seat, dimLevel, shutterPos, frostEnabled,
 
   useEffect(
     () => () => {
-      glassGeo.dispose();
-      shutterGeo.dispose();
+      paneGeos.leftGlass.dispose();
+      paneGeos.leftShutter.dispose();
+      paneGeos.rightGlass.dispose();
+      paneGeos.rightShutter.dispose();
     },
-    [glassGeo, shutterGeo]
+    [paneGeos]
   );
 
-  // Target 3 nearest windows so looking slightly forward/aft shows cohesive blinds & frost
+  // Target 5 nearby windows along both cabin walls so sweeping 360° from one window to the opposite side is seamless
   const windowPositions = useMemo(() => {
     if (!seat) return [];
-    const indices = [seat.windowIndex - 1, seat.windowIndex, seat.windowIndex + 1].filter(
-      (i) => i >= 0 && i <= 41
-    );
+    const indices = [
+      seat.windowIndex - 2,
+      seat.windowIndex - 1,
+      seat.windowIndex,
+      seat.windowIndex + 1,
+      seat.windowIndex + 2,
+    ].filter((i) => i >= 0 && i <= 41);
     return indices.map((i) => -21 + i * 1.035);
   }, [seat]);
 
@@ -304,12 +318,10 @@ export function InteractiveWindowSet({ seat, dimLevel, shutterPos, frostEnabled,
     shutterRefs.current.forEach((mesh) => {
       if (!mesh) return;
       mesh.visible = s > 0.01;
-      // Scale Y downward from top of window (yTop = 1.71)
       mesh.scale.set(1, Math.max(0.001, s), 1);
       mesh.position.y = 1.71 * (1 - s);
     });
 
-    // Window sunlight spilling onto seat decreases as blind or tint closes
     if (sunLightRef.current) {
       const transmission = (1 - s * 0.92) * (1 - targetDim * 0.78) * (1 - env.nightFactor * 0.85);
       sunLightRef.current.intensity = Math.max(0, transmission * 1.9);
@@ -320,36 +332,40 @@ export function InteractiveWindowSet({ seat, dimLevel, shutterPos, frostEnabled,
 
   return (
     <group>
-      {windowPositions.map((wx, idx) => (
-        <group key={wx} position={[wx, 0, 0]}>
-          {/* Electrochromic glass + -54°C frost */}
-          <mesh geometry={glassGeo} renderOrder={4}>
-            <shaderMaterial
-              ref={(el) => {
-                glassMatRefs.current[idx] = el;
-              }}
-              vertexShader={WINDOW_GLASS_VERT}
-              fragmentShader={WINDOW_GLASS_FRAG}
-              uniforms={initialGlassUniforms}
-              transparent
-              depthWrite={false}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          {/* Physical curved ivory cabin window shutter sliding down */}
-          <mesh
-            ref={(el) => {
-              shutterRefs.current[idx] = el;
-            }}
-            geometry={shutterGeo}
-            visible={false}
-            renderOrder={5}
-          >
-            <meshStandardMaterial color="#e7dcc8" roughness={0.62} metalness={0.05} side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-      ))}
-      {/* Real-time window light spill onto the passenger's seat */}
+      {windowPositions.map((wx, wIdx) =>
+        [-1, 1].map((s, sIdx) => {
+          const refIdx = wIdx * 2 + sIdx;
+          const gGeo = s < 0 ? paneGeos.leftGlass : paneGeos.rightGlass;
+          const shGeo = s < 0 ? paneGeos.leftShutter : paneGeos.rightShutter;
+          return (
+            <group key={`${wx}-${s}`} position={[wx, 0, 0]}>
+              <mesh geometry={gGeo} renderOrder={4}>
+                <shaderMaterial
+                  ref={(el) => {
+                    glassMatRefs.current[refIdx] = el;
+                  }}
+                  vertexShader={WINDOW_GLASS_VERT}
+                  fragmentShader={WINDOW_GLASS_FRAG}
+                  uniforms={initialGlassUniforms}
+                  transparent
+                  depthWrite={false}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+              <mesh
+                ref={(el) => {
+                  shutterRefs.current[refIdx] = el;
+                }}
+                geometry={shGeo}
+                visible={false}
+                renderOrder={5}
+              >
+                <meshStandardMaterial color="#e7dcc8" roughness={0.62} metalness={0.05} side={THREE.DoubleSide} />
+              </mesh>
+            </group>
+          );
+        })
+      )}
       <pointLight
         ref={sunLightRef}
         position={[seat.windowX, 1.32, sideSign * 2.75]}

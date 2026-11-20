@@ -50,12 +50,20 @@ function computeCameraPose(target, aspect, zoom) {
   };
 }
 
+function shortestAngleDelta(from, to) {
+  let d = (to - from) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
 export default function CameraRig({
   target,
   zoom,
   seatMode,
   turbulenceLevel,
   lookResetTick,
+  lookPreset,
   walkPaused,
   onWalkProgress,
   onSettled,
@@ -100,6 +108,44 @@ export default function CameraRig({
     lookOffset.current.targetPitch = 0;
   }, [lookResetTick, key]);
 
+  // Apply quick look presets (left window, front cabin, right window, starry ceiling, opposite window)
+  useEffect(() => {
+    if (!lookPreset || target.kind !== 'seat') return;
+    baseDir.copy(pose.look).sub(pose.position).normalize();
+    const baseYaw = Math.atan2(baseDir.z, baseDir.x);
+    const basePitch = Math.asin(THREE.MathUtils.clamp(baseDir.y, -0.95, 0.95));
+
+    let desiredYaw = baseYaw;
+    let desiredPitch = basePitch;
+
+    if (lookPreset.dir === 'left') {
+      // Port (A-side) window is -Z -> yaw = -PI/2
+      desiredYaw = -Math.PI / 2;
+      desiredPitch = -0.02;
+    } else if (lookPreset.dir === 'right') {
+      // Starboard (K-side) window is +Z -> yaw = +PI/2
+      desiredYaw = Math.PI / 2;
+      desiredPitch = -0.02;
+    } else if (lookPreset.dir === 'front') {
+      // Forward cabin / nose is -X -> yaw = PI
+      desiredYaw = Math.PI;
+      desiredPitch = -0.04;
+    } else if (lookPreset.dir === 'ceiling') {
+      // Look upward toward overhead Starry Ceiling & mood LEDs
+      desiredYaw = Math.PI;
+      desiredPitch = 0.68;
+    } else if (lookPreset.dir === 'opposite') {
+      // Opposite window from current seat's side
+      desiredYaw = target.seat.z < 0 ? Math.PI / 2 : -Math.PI / 2;
+      desiredPitch = -0.01;
+    }
+
+    const currentWorldYaw = baseYaw + lookOffset.current.yaw;
+    const deltaYaw = shortestAngleDelta(currentWorldYaw, desiredYaw);
+    lookOffset.current.targetYaw = lookOffset.current.yaw + deltaYaw;
+    lookOffset.current.targetPitch = THREE.MathUtils.clamp(desiredPitch - basePitch, -0.78, 0.95);
+  }, [lookPreset, target, pose, baseDir]);
+
   // Pointer drag listener on WebGL canvas for 360° look-around & subtle orbit
   useEffect(() => {
     const dom = gl.domElement;
@@ -118,16 +164,12 @@ export default function CameraRig({
       dragState.current.lastY = e.clientY;
 
       if (target.kind === 'seat' || target.kind === 'walkthrough') {
-        // Full 360-degree yaw & comfortable pitch looking up to Starry Ceiling / down to Legroom
-        lookOffset.current.targetYaw = THREE.MathUtils.clamp(
-          lookOffset.current.targetYaw - dx * 0.0055,
-          -Math.PI * 0.96,
-          Math.PI * 0.96
-        );
+        // Unlimited 360-degree yaw (look seamlessly from left window across cabin to right window and back!)
+        lookOffset.current.targetYaw -= dx * 0.0085;
         lookOffset.current.targetPitch = THREE.MathUtils.clamp(
-          lookOffset.current.targetPitch + dy * 0.0042,
-          -0.68,
-          0.88
+          lookOffset.current.targetPitch + dy * 0.0052,
+          -0.78,
+          0.95
         );
       } else {
         // Gentle pan/orbit in overview & class view

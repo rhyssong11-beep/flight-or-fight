@@ -8,10 +8,10 @@ export default function PostcardModal({ postcardUrl, seatId }) {
   return (
     <div className="postcard-modal">
       <p className="postcard-desc">
-        Live 3D snapshot captured from Seat <b>{seatId}</b> with your current sky atmosphere, wing view, and boarding details.
+        <b>{seatId}</b> 좌석에서 바라본 현재 3D 하늘·날개 풍경과 탑승 정보를 감성 엽서로 합성했습니다.
       </p>
       <div className="postcard-preview">
-        <img src={postcardUrl} alt={`Aeris Flight EK215 Souvenir Postcard for Seat ${seatId}`} />
+        <img src={postcardUrl} alt={`AERIS EK215편 ${seatId} 좌석 기념 엽서`} />
       </div>
       <div className="postcard-actions">
         <button
@@ -19,7 +19,7 @@ export default function PostcardModal({ postcardUrl, seatId }) {
           className="primary"
           onClick={() => downloadDataUrl(postcardUrl, `AERIS-EK215-Seat-${seatId}.png`)}
         >
-          <Download size={15} /> Download PNG Postcard
+          <Download size={15} /> PNG 엽서 다운로드
         </button>
       </div>
     </div>

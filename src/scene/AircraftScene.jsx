@@ -250,7 +250,7 @@ function FallbackPoster({ target, onSettled }) {
   }, [target, onSettled]);
   return (
     <div className="scene-poster">
-      <span role="alert">3D WebGL view is unavailable on this browser. Browse seats using Seat list.</span>
+      <span role="alert">이 브라우저에서 3D WebGL을 사용할 수 없습니다. 좌석 배치도에서 좌석을 선택해 주세요.</span>
     </div>
   );
 }
@@ -296,6 +296,7 @@ export default function AircraftScene(props) {
           seatMode={props.seatMode}
           turbulenceLevel={props.turbulenceLevel}
           lookResetTick={props.lookResetTick}
+          lookPreset={props.lookPreset}
           walkPaused={props.walkPaused}
           onWalkProgress={props.onWalkProgress}
           onSettled={props.onSettled}

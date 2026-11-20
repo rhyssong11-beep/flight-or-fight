@@ -1,9 +1,5 @@
 import { CABIN_BY_ID, formatPrice } from '../data/cabinData';
 
-/**
- * Composites the live 3D WebGL viewport screenshot with a luxury Aeris
- * editorial boarding postcard frame (1600 x 1080) and returns a PNG data URL.
- */
 export function generateSouvenirPostcard({ canvas, seat, env, weatherLabel, altitudeFt, tempC }) {
   const W = 1600;
   const H = 1080;
@@ -13,17 +9,15 @@ export function generateSouvenirPostcard({ canvas, seat, env, weatherLabel, alti
   const ctx = out.getContext('2d');
 
   const cabin = CABIN_BY_ID[seat.cabin];
+  const sans = '"DM Sans Variable", "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif';
 
-  // Warm cream card stock background
   ctx.fillStyle = '#fbf9f2';
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle gold inner border
   ctx.strokeStyle = '#d7cab0';
   ctx.lineWidth = 2;
   ctx.strokeRect(26, 26, W - 52, H - 52);
 
-  // Photo viewport area
   const px = 56;
   const py = 56;
   const pw = W - 112;
@@ -45,7 +39,6 @@ export function generateSouvenirPostcard({ canvas, seat, env, weatherLabel, alti
   ctx.clip();
 
   if (canvas && canvas.width > 0 && canvas.height > 0) {
-    // Center-cover draw from live WebGL canvas
     const srcRatio = canvas.width / canvas.height;
     const dstRatio = pw / ph;
     let sx = 0, sy = 0, sw = canvas.width, sh = canvas.height;
@@ -65,55 +58,51 @@ export function generateSouvenirPostcard({ canvas, seat, env, weatherLabel, alti
     ctx.fillRect(px, py, pw, ph);
   }
 
-  // Soft bottom vignette for photo caption legibility
   const vig = ctx.createLinearGradient(0, py + ph - 160, 0, py + ph);
   vig.addColorStop(0, 'rgba(22, 18, 13, 0)');
-  vig.addColorStop(1, 'rgba(22, 18, 13, 0.52)');
+  vig.addColorStop(1, 'rgba(22, 18, 13, 0.55)');
   ctx.fillStyle = vig;
   ctx.fillRect(px, py + ph - 160, pw, 160);
 
-  // Photo overlay pill (top-left)
-  ctx.fillStyle = 'rgba(255, 253, 245, 0.88)';
+  const pillText = `AERIS · EK215 · ${env.phaseName}`;
+  ctx.font = `600 16px ${sans}`;
+  const pillW = Math.max(280, ctx.measureText(pillText).width + 44);
+  ctx.fillStyle = 'rgba(255, 253, 245, 0.9)';
   ctx.beginPath();
-  ctx.roundRect(px + 28, py + 26, 336, 40, 8);
+  ctx.roundRect(px + 28, py + 26, pillW, 40, 8);
   ctx.fill();
   ctx.fillStyle = '#33362f';
-  ctx.font = '600 16px "DM Sans Variable", "DM Sans", -apple-system, sans-serif';
-  ctx.fillText(`AERIS · EK215 · ${env.phaseName.toUpperCase()}`, px + 48, py + 52);
+  ctx.fillText(pillText, px + 48, py + 52);
 
-  // Photo bottom caption
   ctx.fillStyle = '#fffaf0';
-  ctx.font = '500 18px "DM Sans Variable", "DM Sans", -apple-system, sans-serif';
+  ctx.font = `500 18px ${sans}`;
   ctx.fillText(
-    `${seat.viewLabel}  ·  ${altitudeFt.toLocaleString()} ft  ·  ${tempC}°C  ·  ${weatherLabel}`,
+    `${seat.viewLabel}  ·  고도 ${altitudeFt.toLocaleString()} ft  ·  외기온도 ${tempC}°C  ·  ${weatherLabel}`,
     px + 30,
     py + ph - 28
   );
   ctx.restore();
 
-  // Bottom boarding pass editorial strip
   const by = py + ph + 36;
 
-  // Brand + Route
   ctx.fillStyle = '#927446';
-  ctx.font = '700 15px "DM Sans Variable", "DM Sans", -apple-system, sans-serif';
-  ctx.fillText('AERIS  /  BOEING 777-300ER  (A6-AER)', 60, by + 20);
+  ctx.font = `700 15px ${sans}`;
+  ctx.fillText('AERIS  /  보잉 777-300ER  (A6-AER)', 60, by + 20);
 
   ctx.fillStyle = '#24292b';
   ctx.font = '600 68px Georgia, "Times New Roman", serif';
   ctx.fillText('DXB', 58, by + 104);
   ctx.fillStyle = '#a78753';
-  ctx.font = '400 40px "DM Sans Variable", sans-serif';
+  ctx.font = `400 40px ${sans}`;
   ctx.fillText('→', 224, by + 95);
   ctx.fillStyle = '#24292b';
   ctx.font = '600 68px Georgia, "Times New Roman", serif';
   ctx.fillText('LAX', 284, by + 104);
 
   ctx.fillStyle = '#6f726a';
-  ctx.font = '500 18px "DM Sans Variable", sans-serif';
-  ctx.fillText(`Dubai 09:40  ·  Los Angeles 13:55  ·  Over ${env.currentWaypoint.label}`, 60, by + 148);
+  ctx.font = `500 18px ${sans}`;
+  ctx.fillText(`두바이 09:40 출발  ·  로스앤젤레스 13:55 도착  ·  ${env.currentWaypoint.label} 통과`, 60, by + 148);
 
-  // Vertical dashed divider
   ctx.save();
   ctx.setLineDash([7, 7]);
   ctx.strokeStyle = '#c9bca2';
@@ -124,24 +113,22 @@ export function generateSouvenirPostcard({ canvas, seat, env, weatherLabel, alti
   ctx.stroke();
   ctx.restore();
 
-  // Seat metadata columns
   const drawField = (label, value, x, y, large = false) => {
     ctx.fillStyle = '#857863';
-    ctx.font = '700 13px "DM Sans Variable", sans-serif';
-    ctx.fillText(label.toUpperCase(), x, y);
+    ctx.font = `700 13px ${sans}`;
+    ctx.fillText(label, x, y);
     ctx.fillStyle = '#262928';
     ctx.font = large
       ? '600 44px Georgia, "Times New Roman", serif'
-      : '600 26px "DM Sans Variable", sans-serif';
+      : `600 24px ${sans}`;
     ctx.fillText(value, x, y + (large ? 48 : 34));
   };
 
-  drawField('Seat', seat.id, 804, by + 26, true);
-  drawField('Cabin', cabin.name, 970, by + 26);
-  drawField('Fare', formatPrice(cabin.price), 970, by + 114);
-  drawField('Gate / Boarding', 'B12 · 07:55', 804, by + 114);
+  drawField('좌석 번호', seat.id, 804, by + 26, true);
+  drawField('객실 클래스', cabin.name, 970, by + 26);
+  drawField('예상 운임', formatPrice(cabin.price), 970, by + 114);
+  drawField('게이트 / 탑승', 'B12 · 07:55', 804, by + 114);
 
-  // Decorative aviation barcode on right
   const bx = 1320;
   const bTop = by + 14;
   ctx.fillStyle = '#2c2d29';
